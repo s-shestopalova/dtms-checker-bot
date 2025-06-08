@@ -61,17 +61,26 @@ def get_appointment_info():
     except Exception as e:
         return f"Fehler: {e}"
 
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("check", check))
-    app.run_polling()
+import asyncio
+import flask
 
-# 🚀 Fake Web Server for Render Free Tier
 flask_app = flask.Flask(__name__)
 
-@flask_app.route("/")
+@flask_app.route('/')
 def index():
     return "Bot is running."
 
-threading.Thread(target=main).start()
-flask_app.run(host="0.0.0.0", port=10000)
+async def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("check", check))
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.wait_until_closed()
+
+def run():
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    flask_app.run(host="0.0.0.0", port=10000)
+
+run()
