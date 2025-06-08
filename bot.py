@@ -73,23 +73,19 @@ def get_appointment_info():
 def cmd_check(update, context):
     update.message.reply_text(get_appointment_info())
 
+# … above remains exactly the same …
+
 def run_bot():
     updater = Updater(BOT_TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("check", cmd_check))
     updater.start_polling()
-    # keep thread alive (no idle() to avoid signal calls)
-    while True:
-        time.sleep(60)
 
-# ─── Flask “Keep-Alive” ─────────────────────────────────────────────────────────
 app = Flask(__name__)
-
 @app.route("/")
 def home():
     return "Bot is running."
 
-# ─── Entrypoint ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     Thread(target=run_bot, daemon=True).start()
     app.run(host="0.0.0.0", port=10000)
