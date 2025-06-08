@@ -1,8 +1,8 @@
 import os
-import time
 import logging
-import flask
-import threading
+import asyncio
+from threading import Thread
+from flask import Flask
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -11,9 +11,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Load from env
+# Load from environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 NAME = os.getenv("NAME", "Max")
+SURNAME = os.getenv("SURNAME", "Mustermann")
 EMAIL = os.getenv("EMAIL", "test@example.com")
 PHONE = os.getenv("PHONE", "0123456789")
 
@@ -35,24 +36,27 @@ def get_appointment_info():
 
         driver.get(URL)
 
+        # Step 1: Select Fahrerlaubnisbehörde
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(),'Fahrerlaubnisbehörde')]"))).click()
 
+        # Step 2: Fill personal data
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "field-vorname"))).send_keys(NAME)
-        driver.find_element(By.ID, "field-nachname").send_keys("Test")
+        driver.find_element(By.ID, "field-nachname").send_keys(SURNAME)
         driver.find_element(By.ID, "field-email").send_keys(EMAIL)
         driver.find_element(By.ID, "field-telefon").send_keys(PHONE)
         driver.find_element(By.ID, "datenschutz").click()
         driver.find_element(By.XPATH, "//button[contains(text(),'Weiter')]").click()
 
+        # Step 3: Select "Umschreibung ausländischer Führerschein"
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//h4[contains(text(),'Umschreibung')]")))
         service = driver.find_element(By.XPATH, "//h4[contains(text(),'Umschreibung')]/ancestor::div[contains(@class, 'leistung')]/descendant::input[@type='number']")
         service.clear()
         service.send_keys("1")
         driver.find_element(By.XPATH, "//button[contains(text(),'Weiter')]").click()
 
+        # Step 4: Search and extract top 3 slots
         WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Suchen')]"))).click()
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "appointment")))
-
         slots = driver.find_elements(By.CLASS_NAME, "appointment")[:3]
         result = "\n".join(slot.text.strip() for slot in slots) or "Keine Termine gefunden."
 
@@ -61,9 +65,7 @@ def get_appointment_info():
     except Exception as e:
         return f"Fehler: {e}"
 
-import asyncio
-from flask import Flask
-from threading import Thread
+# ==== Flask + Bot Combined ====
 
 flask_app = Flask(__name__)
 
@@ -76,9 +78,9 @@ async def start_bot():
     app.add_handler(CommandHandler("check", check))
     await app.run_polling()
 
-def start_flask():
-    flask_app.run(host="0.0.0.0", port=10000)
+def run_telegram_bot():
+    asyncio.run(start_bot())
 
 if __name__ == "__main__":
-    Thread(target=start_flask).start()
-    asyncio.run(start_bot())
+    Thread(target=run_telegram_bot).start()
+    flask_app.run(host="0.0.0.0", port=10000)
