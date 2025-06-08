@@ -8,18 +8,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from telegram import Bot, Update
 from telegram.ext import Dispatcher, CommandHandler
 
-# ─── Config ──────────────────────────────────────────────────────────────
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SERVICE_URL = os.getenv("SERVICE_URL")  # e.g. https://your-service.onrender.com
+# ─── Configuration ─────────────────────────────────────────────────────────────
+BOT_TOKEN   = os.getenv("BOT_TOKEN")
+SERVICE_URL = os.getenv("SERVICE_URL")   # e.g. https://dtms-checker-bot-3.onrender.com
+NAME        = os.getenv("NAME",    "Max")
+SURNAME     = os.getenv("SURNAME", "Mustermann")
+EMAIL       = os.getenv("EMAIL",   "test@example.com")
+PHONE       = os.getenv("PHONE",   "0123456789")
+URL         = "https://dtms.wiesbaden.de/DTMSTerminWeb/"
 
-# Personal data (you can use dummy values until you're ready to book)
-NAME    = os.getenv("NAME",    "Max")
-SURNAME = os.getenv("SURNAME", "Mustermann")
-EMAIL   = os.getenv("EMAIL",   "test@example.com")
-PHONE   = os.getenv("PHONE",   "0123456789")
-URL     = "https://dtms.wiesbaden.de/DTMSTerminWeb/"
-
-# ─── Scraper ─────────────────────────────────────────────────────────────
+# ─── Scraper ───────────────────────────────────────────────────────────────────
 def get_appointment_info():
     opts = Options()
     opts.add_argument("--headless")
@@ -34,9 +32,9 @@ def get_appointment_info():
 
     WebDriverWait(driver, 10).until(lambda d: d.find_element(By.ID, "field-vorname")).send_keys(NAME)
     driver.find_element(By.ID, "field-nachname").send_keys(SURNAME)
-    driver.find_element(By.ID, "field-email")   .send_keys(EMAIL)
+    driver.find_element(By.ID, "field-email")  .send_keys(EMAIL)
     driver.find_element(By.ID, "field-telefon").send_keys(PHONE)
-    driver.find_element(By.ID, "datenschutz")   .click()
+    driver.find_element(By.ID, "datenschutz")  .click()
     driver.find_element(By.XPATH, "//button[contains(text(),'Weiter')]").click()
 
     WebDriverWait(driver, 10).until(
@@ -62,17 +60,17 @@ def get_appointment_info():
     driver.quit()
     return "\n".join(lines) if lines else "Keine Termine gefunden."
 
-# ─── Telegram Setup ─────────────────────────────────────────────────────
+# ─── Telegram Setup ───────────────────────────────────────────────────────────
 bot = Bot(token=BOT_TOKEN)
-dispatcher = Dispatcher(bot, None, workers=0)  # no background threads
+# Give the Dispatcher a real update queue and 4 worker threads
+dispatcher = Dispatcher(bot, update_queue=None, workers=4, use_context=True)
 
 def cmd_check(update: Update, context):
     update.message.reply_text(get_appointment_info())
 
-# register the /check command
 dispatcher.add_handler(CommandHandler("check", cmd_check))
 
-# ─── Flask App & Webhook Endpoint ───────────────────────────────────────
+# ─── Flask & Webhook ──────────────────────────────────────────────────────────
 app = Flask(__name__)
 
 @app.route("/")
@@ -87,7 +85,7 @@ def webhook():
     return "OK"
 
 if __name__ == "__main__":
-    # set the webhook on startup
+    # Register your webhook endpoint with Telegram
     bot.set_webhook(f"{SERVICE_URL}/webhook")
-    # run Flask (no reloader)
+    # Start Flask (disable reloader so it only fires once)
     app.run(host="0.0.0.0", port=10000, use_reloader=False)
