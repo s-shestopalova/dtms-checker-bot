@@ -63,7 +63,7 @@ def get_appointment_info():
 
 import asyncio
 from flask import Flask
-from telegram.ext import ApplicationBuilder, CommandHandler
+from threading import Thread
 
 flask_app = Flask(__name__)
 
@@ -71,15 +71,14 @@ flask_app = Flask(__name__)
 def home():
     return "Bot is running."
 
-async def telegram_bot():
+async def start_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("check", check))
     await app.run_polling()
 
-def run():
-    loop = asyncio.get_event_loop()
-    loop.create_task(telegram_bot())
+def start_flask():
     flask_app.run(host="0.0.0.0", port=10000)
 
 if __name__ == "__main__":
-    run()
+    Thread(target=start_flask).start()
+    asyncio.run(start_bot())
