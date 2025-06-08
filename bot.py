@@ -62,25 +62,24 @@ def get_appointment_info():
         return f"Fehler: {e}"
 
 import asyncio
-import flask
+from flask import Flask
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-flask_app = flask.Flask(__name__)
+flask_app = Flask(__name__)
 
-@flask_app.route('/')
-def index():
+@flask_app.route("/")
+def home():
     return "Bot is running."
 
-async def main():
+async def telegram_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("check", check))
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.wait_until_closed()
+    await app.run_polling()
 
 def run():
     loop = asyncio.get_event_loop()
-    loop.create_task(main())
+    loop.create_task(telegram_bot())
     flask_app.run(host="0.0.0.0", port=10000)
 
-run()
+if __name__ == "__main__":
+    run()
