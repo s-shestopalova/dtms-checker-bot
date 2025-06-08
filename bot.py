@@ -85,6 +85,10 @@ def bot_error(update, context):
 dispatcher.add_error_handler(bot_error)
 
 # ─── Flask & Webhook Endpoint ───────────────────────────────────────────────
+# ─── Flask & Webhook Section ────────────────────────────────────────────────
+import json
+from flask import Flask, request
+
 app = Flask(__name__)
 
 @app.route("/")
@@ -98,8 +102,18 @@ def webhook():
     dispatcher.process_update(update)
     return "OK"
 
+@app.route("/info")
+def info():
+    # show current Telegram webhook info
+    info = bot.get_webhook_info().to_dict()
+    return app.response_class(
+        response=json.dumps(info, indent=2, ensure_ascii=False),
+        status=200,
+        mimetype="application/json"
+    )
+
 if __name__ == "__main__":
-    # Register webhook with Telegram
+    # register webhook on startup
     bot.set_webhook(f"{SERVICE_URL}/webhook")
-    # Run Flask (disable auto-reloader)
+    # start Flask (no reloader)
     app.run(host="0.0.0.0", port=10000, use_reloader=False)
