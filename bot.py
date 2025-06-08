@@ -1,22 +1,3 @@
-import os
-import logging
-import asyncio
-from threading import Thread
-from flask import Flask
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-
-# Load configuration from environment variables
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-NAME = os.getenv("NAME", "Max")
-SURNAME = os.getenv("SURNAME", "Mustermann")
-EMAIL = os.getenv("EMAIL", "test@example.com")
-PHONE = os.getenv("PHONE", "0123456789")
 
 URL = "https://dtms.wiesbaden.de/DTMSTerminWeb/"
 
